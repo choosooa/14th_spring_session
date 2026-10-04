@@ -1,5 +1,8 @@
 plugins {
 	id 'java'
+	// 정식 릴리스 버전으로 고정한다. 마일스톤(-M1, -RC 등)이나 SNAPSHOT을 쓰지 말 것.
+	// IDE가 ~/.m2 에 있던 4.2.0-M1 / spring 7.1.0-M1 을 같이 물어서
+	// classpath에 스프링 버전이 섞이면 NoSuchMethodError로 앱이 아예 안 뜬다.
 	id 'org.springframework.boot' version '4.1.1'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -14,15 +17,27 @@ java {
 }
 
 repositories {
+	// 정식 릴리스만 받는다. 스프링 마일스톤 저장소(repo.spring.io/milestone)를 추가하지 말 것.
 	mavenCentral()
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	runtimeOnly 'com.mysql:mysql-connector-j'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'   // 추가
+	runtimeOnly 'com.mysql:mysql-connector-j'                                // 추가
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	// 테스트는 MySQL 없이 인메모리 H2로 돌린다. (@SpringBootTest가 DB 연결을 요구함)
+	testRuntimeOnly 'com.h2database:h2'
+
+	// Validation
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// Lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {

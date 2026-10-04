@@ -1,17 +1,22 @@
 package com.likelion.springsession.post.entity;
 
+import com.likelion.springsession.comment.entity.Comment;
 import jakarta.persistence.*;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "posts")
-
 public class Post {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,20 +30,22 @@ public class Post {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-
-    protected Post() {
+    public Post(String title, String content) {
+        this.title = title;
+        this.content = content;
+        this.createdAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
+    public void update(String title, String content) {
+        this.title = title;
+        this.content = content;
     }
-    public String getTitle(){
-        return title;
-    }
-    public String getContent() {
-        return content;
-    }
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+
+    @OneToMany(mappedBy = "post", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
+
+    public void removeComment(Comment comment){
+        comments.remove(comment);
+        comment.clearPost();
     }
 }
