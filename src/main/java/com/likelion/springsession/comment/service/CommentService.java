@@ -2,16 +2,20 @@ package com.likelion.springsession.comment.service;
 
 import com.likelion.springsession.comment.dto.CommentCreateRequest;
 import com.likelion.springsession.comment.dto.CommentResponse;
+import com.likelion.springsession.comment.dto.CommentUpdateRequest;
 import com.likelion.springsession.comment.entity.Comment;
+import com.likelion.springsession.comment.exception.CommentAccessDeniedException;
 import com.likelion.springsession.comment.repository.CommentRepository;
 import com.likelion.springsession.post.entity.Post;
 import com.likelion.springsession.post.repository.PostRepository;
+import com.likelion.springsession.user.entity.User;
+import com.likelion.springsession.user.exception.UserNotFoundException;
+import com.likelion.springsession.user.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.likelion.springsession.comment.dto.CommentUpdateRequest;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,12 +24,19 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public CommentResponse addComment(Long postId, CommentCreateRequest request){
-        Post post = postRepository.findById(postId).orElseThrow();
+    public CommentResponse addComment(Long userId, Long postId, CommentCreateRequest request) {
 
-        Comment saved = commentRepository.save(new Comment(post, request.getContent()));
+        Post post = postRepository.findById(postId)
+                .orElseThrow();
+
+        User author = userRepository.findById(userId)
+                .orElseThrow(UserNotFoundException::new);
+
+        Comment saved = commentRepository.save(new Comment(post, author, request.getContent()));
+
         return new CommentResponse(saved);
     }
 
@@ -40,19 +51,33 @@ public class CommentService {
     }
 
     @Transactional
-    public CommentResponse updateComment(Long postId, Long commentId, CommentUpdateRequest request) {
-        Comment comment = commentRepository.findByIdAndPostId(commentId, postId).orElseThrow();
+    public CommentResponse updateComment(Long userId, Long postId, Long commentId,
+                                         CommentUpdateRequest request) {
+        Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
+                .orElseThrow();
+
+        // ✨ 작성자 본인인지 확인 → 아니면 403
+        if (!comment.isAuthor(userId)) {
+            throw new CommentAccessDeniedException();
+        }
+
         comment.update(request.getContent());
         return new CommentResponse(comment);
     }
 
     @Transactional
-    public void deleteComment(Long postId, Long commentId) {
+    public void deleteComment(Long userId, Long postId, Long commentId) {
         Post post = postRepository.findById(postId).orElseThrow();
         Comment comment = post.getComments().stream()
                 .filter(c -> c.getId().equals(commentId))
                 .findFirst()
                 .orElseThrow();
+
+        // ✨ 작성자 본인인지 확인 → 아니면 403
+        if (!comment.isAuthor(userId)) {
+            throw new CommentAccessDeniedException();
+        }
+
         post.removeComment(comment);
     }
 }

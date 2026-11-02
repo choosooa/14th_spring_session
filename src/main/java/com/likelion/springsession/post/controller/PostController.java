@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,21 +31,28 @@ public class PostController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public PostDetailResponse createPost(@Valid @RequestBody PostCreateRequest request) {
-        return postService.createPost(request);
+    public PostDetailResponse createPost(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody PostCreateRequest request) {
+        System.out.println("요청한 사람: " + userId);   // ← 임시 확인용
+        return postService.createPost(userId, request);
     }
 
     @PutMapping("/{postId}")
     public PostDetailResponse updatePost(
-            @PathVariable Long postId,
-            @Valid @RequestBody PostUpdateRequest request
-    ) {
-        return postService.updatePost(postId, request);
+            @AuthenticationPrincipal Long userId,
+            @PathVariable("postId") Long postId,
+            @Valid @RequestBody PostUpdateRequest request) {
+
+        return postService.updatePost(userId, postId, request);
     }
 
     @DeleteMapping("/{postId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletePost(@PathVariable Long postId) {
-        postService.deletePost(postId);
+    public void deletePost(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable("postId") Long postId) {
+
+        postService.deletePost(userId, postId);
     }
 }
